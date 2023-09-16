@@ -55,6 +55,12 @@ pub enum EncryptionError {
 
 #[derive(Debug, Error)]
 pub enum DecryptionError {
+    #[error("Invalid Magic={magic:?}")]
+    InvalidMagic { magic: [u8; 8] },
+    #[error("Invalid Version Header byte={header_byte}")]
+    InvalidVersionField { header_byte: u8 },
+    #[error("Invalid Header Field")]
+    InvalidHeaderFields,
     #[error("Invalid Version byte={version_byte}")]
     InvalidVersion { version_byte: u8 },
     #[error("Read I/O Error at Header: {err}")]
@@ -400,11 +406,15 @@ pub fn decrypt_stream<I: Reporter, R: Read, W: Write>(
         .map_err(|err| DecryptionError::ReaderHeaderIO { err })?;
 
     if &header[0..8] != ENIGFILE_HEADER {
-        panic!("not an ENIGFILE")
+        return Err(DecryptionError::InvalidMagic {
+            magic: <&[u8; 8]>::try_from(&header[0..8]).unwrap().clone(),
+        });
     }
 
     if header[8] < 0x30 {
-        panic!("not a valid version")
+        return Err(DecryptionError::InvalidVersionField {
+            header_byte: header[8],
+        });
     }
     let ver = header[8] - 0x30;
     let version = if ver == 0 {
@@ -414,7 +424,7 @@ pub fn decrypt_stream<I: Reporter, R: Read, W: Write>(
     };
 
     if header[9..24].iter().any(|v| *v != 0) {
-        panic!("15 0-bytes are not null")
+        return Err(DecryptionError::InvalidHeaderFields);
     }
 
     let random = header[24..40].try_into().unwrap();
