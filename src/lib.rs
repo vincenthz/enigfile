@@ -1,7 +1,6 @@
 use cryptoxide::chacha20;
 use cryptoxide::chacha20poly1305::{self, Context, ContextDecryption, ContextEncryption};
 use cryptoxide::kdf::argon2;
-use getrandom::getrandom;
 use std::fs::File;
 use std::io::{Read, Write};
 use thiserror::Error;
@@ -124,14 +123,14 @@ impl RootContext {
     pub fn econtext(&mut self) -> EContext {
         let mut e = [0u8; 44];
         self.0.process_mut(&mut e);
-        let ctx = Context::new(&e[0..32], &e[32..44]);
+        let ctx = Context::new(&e[0..32], <&[u8; 12]>::try_from(&e[32..44]).unwrap());
         ctx.to_encryption()
     }
 
     pub fn dcontext(&mut self) -> DContext {
         let mut e = [0u8; 44];
         self.0.process_mut(&mut e);
-        let ctx = Context::new(&e[0..32], &e[32..44]);
+        let ctx = Context::new(&e[0..32], <&[u8; 12]>::try_from(&e[32..44]).unwrap());
         ctx.to_decryption()
     }
 }
@@ -386,7 +385,7 @@ pub fn encrypt_file<I: Reporter>(
     output: &mut File,
 ) -> Result<(), EncryptionError> {
     let mut random = [0; 16];
-    getrandom(&mut random).unwrap();
+    getrandom::fill(&mut random).unwrap();
 
     let params = Parameters::default();
     encrypt_stream(report, params, password, &random, input, output)
