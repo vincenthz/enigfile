@@ -7,7 +7,7 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-cryptoxide = "0.5"
+cryptoxide = "0.6"
 thiserror = "2"
 getrandom = "0.4"
 anyhow = "1"

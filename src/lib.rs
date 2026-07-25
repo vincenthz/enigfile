@@ -1,6 +1,6 @@
-use cryptoxide::chacha20;
 use cryptoxide::chacha20poly1305::{self, Context, ContextDecryption, ContextEncryption};
 use cryptoxide::kdf::argon2;
+use cryptoxide::{chacha20, poly1305};
 use std::fs::File;
 use std::io::{Read, Write};
 use thiserror::Error;
@@ -184,7 +184,7 @@ fn decrypt_and_output<W: Write>(
         return Err(DecryptionError::ChunkDataTooBig { size: data.len() });
     }
 
-    let read_tag = chacha20poly1305::Tag(tag.clone());
+    let read_tag = poly1305::Tag(tag.clone());
 
     ctx.decrypt_mut(data);
     if ctx.finalize(&read_tag) == chacha20poly1305::DecryptionResult::MisMatch {
